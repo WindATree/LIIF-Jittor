@@ -49,12 +49,12 @@ class MetaSR(nn.Module):
         coord_q = (coord_ + 1e-6).clamp(-1 + 1e-6, 1 - 1e-6)  # clamp 替代 clamp_
 
         # 采样特征和坐标
-        q_feat = jt.grid_sample(
+        q_feat = jt.nn.grid_sample(
             feat, coord_q.flip(-1).unsqueeze(1),
             mode='nearest', align_corners=False
         )[:, :, 0, :].transpose(0, 2, 1)  # transpose 替代 permute
 
-        q_coord = jt.grid_sample(
+        q_coord = jt.nn.grid_sample(
             feat_coord, coord_q.flip(-1).unsqueeze(1),
             mode='nearest', align_corners=False
         )[:, :, 0, :].transpose(0, 2, 1)

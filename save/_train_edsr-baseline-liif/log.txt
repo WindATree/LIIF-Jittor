@@ -1,1 +1,12 @@
 train dataset: size=16000
+  inp: shape=(3, 48, 48)
+  coord: shape=(256, 2)
+  cell: shape=(256, 2)
+  gt: shape=(256, 3)
+val dataset: size=1600
+  inp: shape=(3, 48, 48)
+  coord: shape=(256, 2)
+  cell: shape=(256, 2)
+  gt: shape=(256, 3)
+model: #params=1.6M
+epoch 1/1000, train: loss=0.0608, val: psnr=32.1492, 6.3m 6.3m/105.6h

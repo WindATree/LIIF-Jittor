@@ -34,14 +34,18 @@ from jittor.lr_scheduler import MultiStepLR  # Jittor 的学习率调度器
 import datasets
 import models
 import utils
-from test import eval_psnr  # 需确保 eval_psnr 已转换为 Jittor 版本
+from test import eval_psnr 
 
+print("Use CUDA:", jt.flags.use_cuda)  # 应输出 True
+jt.flags.use_cuda = 1
+# 验证是否启用成功
+print("Use CUDA after setting:", jt.flags.use_cuda)  # 应输出 1
 
 def make_data_loader(spec, tag=''):
     if spec is None:
         return None
 
-    # 创建数据集（已转换为 Jittor 版本的 datasets）
+    # 创建数据集
     dataset = datasets.make(spec['dataset'])
     dataset = datasets.make(spec['wrapper'], args={'dataset': dataset})
 
@@ -67,24 +71,23 @@ def make_data_loaders():
 
 def prepare_training():
     if config.get('resume') is not None:
-        # 加载 Jittor 模型权重（替换 torch.load）
+        # 加载 Jittor 模型权重
         sv_file = jt.load(config['resume'])
-        # 构建模型（无需 .cuda()，Jittor 自动管理设备）
+        # 构建模型
         model = models.make(sv_file['model'], load_sd=True)
-        # 构建优化器（已转换为 Jittor 版本的 utils.make_optimizer）
+        # 构建优化器
         optimizer = utils.make_optimizer(
             model.parameters(), sv_file['optimizer'], load_sd=True)
         epoch_start = sv_file['epoch'] + 1
         if config.get('multi_step_lr') is None:
             lr_scheduler = None
         else:
-            # Jittor 的 MultiStepLR 用法与 PyTorch 一致
             lr_scheduler = MultiStepLR(optimizer, **config['multi_step_lr'])
         # 恢复调度器状态
         for _ in range(epoch_start - 1):
             lr_scheduler.step()
     else:
-        # 初始化模型（无需 .cuda()）
+        # 初始化模型
         model = models.make(config['model'])
         optimizer = utils.make_optimizer(
             model.parameters(), config['optimizer'])
@@ -104,7 +107,7 @@ def train(train_loader, model, optimizer):
     train_loss = utils.Averager()
 
     data_norm = config['data_norm']
-    # 数据归一化参数（替换 torch.FloatTensor 为 jt.array，无需 .cuda()）
+    # 数据归一化
     t = data_norm['inp']
     inp_sub = jt.array(t['sub']).view(1, -1, 1, 1)
     inp_div = jt.array(t['div']).view(1, -1, 1, 1)
@@ -113,7 +116,6 @@ def train(train_loader, model, optimizer):
     gt_div = jt.array(t['div']).view(1, 1, -1)
 
     for batch in tqdm(train_loader, leave=False, desc='train'):
-        # Jittor 张量无需 .cuda()，自动在设备上运行
         inp = (batch['inp'] - inp_sub) / inp_div
         pred = model(inp, batch['coord'], batch['cell'])
 
@@ -122,11 +124,11 @@ def train(train_loader, model, optimizer):
 
         train_loss.add(loss.item())
 
-        optimizer.zero_grad()  # 清空梯度
-        loss.backward()  # 反向传播（Jittor 自动微分）
-        optimizer.step()  # 更新参数
+        optimizer.zero_grad()  
+        optimizer.backward(loss)
+        optimizer.step()  
 
-        # 释放中间变量（Jittor 自动管理内存，可选）
+        # 释放中间变量
         pred = None; loss = None
 
     return train_loss.item()
@@ -148,7 +150,7 @@ def main(config_, save_path):
 
     model, optimizer, epoch_start, lr_scheduler = prepare_training()
 
-    # 多 GPU 支持（Jittor 的 DataParallel）
+    # 多 GPU 支持
     n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
     if n_gpus > 1:
         model = nn.DataParallel(model)
@@ -165,8 +167,7 @@ def main(config_, save_path):
         log_info = ['epoch {}/{}'.format(epoch, epoch_max)]
 
         # 记录学习率
-        writer.add_scalar('lr', optimizer.param_groups[0]['lr'], epoch)
-
+        writer.add_scalar('lr', optimizer.lr, epoch)
         # 训练一轮
         train_loss = train(train_loader, model, optimizer)
         if lr_scheduler is not None:
@@ -175,7 +176,7 @@ def main(config_, save_path):
         log_info.append('train: loss={:.4f}'.format(train_loss))
         writer.add_scalars('loss', {'train': train_loss}, epoch)
 
-        # 模型状态保存（区分多 GPU 情况）
+        # 模型状态保存
         if n_gpus > 1:
             model_ = model.module
         else:
@@ -190,7 +191,7 @@ def main(config_, save_path):
             'epoch': epoch
         }
 
-        # 保存模型（Jittor 保存用 jt.save）
+        # 保存模型
         jt.save(sv_file, os.path.join(save_path, 'epoch-last.pth'))
 
         if (epoch_save is not None) and (epoch % epoch_save == 0):
@@ -203,7 +204,7 @@ def main(config_, save_path):
                 model_ = model.module
             else:
                 model_ = model
-            # 评估 PSNR（需确保 eval_psnr 已转换为 Jittor 版本）
+            # 评估 PSNR
             val_res = eval_psnr(val_loader, model_,
                 data_norm=config['data_norm'],
                 eval_type=config.get('eval_type'),
@@ -234,7 +235,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
 
-    # 设置可见 GPU（Jittor 会自动使用）
+    # 设置可见 GPU
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
     # 加载配置文件

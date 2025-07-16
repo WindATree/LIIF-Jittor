@@ -17,7 +17,7 @@ class LIIF(nn.Module):
         self.cell_decode = cell_decode
 
         self.encoder = models.make(encoder_spec)  # 编码器（如 EDSR）已转换为 Jittor 版本
-
+        
         if imnet_spec is not None:
             imnet_in_dim = self.encoder.out_dim
             if self.feat_unfold:
@@ -38,7 +38,7 @@ class LIIF(nn.Module):
 
         if self.imnet is None:
             # 无解码器时直接用最近邻采样
-            ret = jt.grid_sample(
+            ret = jt.nn.grid_sample(
                 feat, coord.flip(-1).unsqueeze(1),  # coord 翻转维度以匹配 grid_sample 要求
                 mode='nearest', align_corners=False
             )[:, :, 0, :].transpose(0, 2, 1)  # Jittor 用 transpose 替代 permute
@@ -46,10 +46,13 @@ class LIIF(nn.Module):
 
         # 特征展开（3x3 邻域）
         if self.feat_unfold:
-            feat = jt.unfold(feat, 3, padding=1).view(
-                feat.shape[0], feat.shape[1] * 9, feat.shape[2], feat.shape[3]
-            )
-
+            # 保存 unfold 前的原始形状（4 维：B, C, H, W）
+            B, C, H, W = feat.shape  # 关键：这里的 H 和 W 是原始特征的空间维度
+            # 执行 unfold（输出 3 维：B, C*9, H*W）
+            feat = jt.nn.unfold(feat, kernel_size=3, padding=1)
+            # 用原始 H 和 W 重塑形状（恢复为 4 维：B, C*9, H, W）
+            feat = feat.view(B, C*9, H, W).contiguous()
+            
         # 局部集成参数
         if self.local_ensemble:
             vx_lst = [-1, 1]
@@ -78,12 +81,12 @@ class LIIF(nn.Module):
                 coord_ = coord_.clamp(-1 + 1e-6, 1 - 1e-6)  # Jittor 无 in-place 操作，用 clamp 替代 clamp_
 
                 # 采样特征和坐标
-                q_feat = jt.grid_sample(
+                q_feat = jt.nn.grid_sample(
                     feat, coord_.flip(-1).unsqueeze(1),
                     mode='nearest', align_corners=False
                 )[:, :, 0, :].transpose(0, 2, 1)  # transpose 替代 permute
 
-                q_coord = jt.grid_sample(
+                q_coord = jt.nn.grid_sample(
                     feat_coord, coord_.flip(-1).unsqueeze(1),
                     mode='nearest', align_corners=False
                 )[:, :, 0, :].transpose(0, 2, 1)

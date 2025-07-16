@@ -21,7 +21,7 @@ class MeanShift(nn.Module):
 
         super(MeanShift, self).__init__()
         std = jt.array(rgb_std)
-        self.weight = jt.eye(3).view(3, 3, 1, 1) / std.view(3, 1, 1, 1)
+        self.weight = jt.init.eye(3).view(3, 3, 1, 1) / std.view(3, 1, 1, 1)
         self.bias = sign * rgb_range * jt.array(rgb_mean) / std
         self.weight.stop_grad()
         self.bias.stop_grad()
