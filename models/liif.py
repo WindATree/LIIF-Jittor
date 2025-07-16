@@ -3,8 +3,7 @@ import jittor.nn as nn
 
 import models
 from models import register
-from utils import make_coord  # 需确保 utils.make_coord 已转换为 Jittor 版本
-
+from utils import make_coord  
 
 @register('liif')
 class LIIF(nn.Module):
@@ -16,7 +15,7 @@ class LIIF(nn.Module):
         self.feat_unfold = feat_unfold
         self.cell_decode = cell_decode
 
-        self.encoder = models.make(encoder_spec)  # 编码器（如 EDSR）已转换为 Jittor 版本
+        self.encoder = models.make(encoder_spec)  # 编码器
         
         if imnet_spec is not None:
             imnet_in_dim = self.encoder.out_dim
@@ -41,13 +40,13 @@ class LIIF(nn.Module):
             ret = jt.nn.grid_sample(
                 feat, coord.flip(-1).unsqueeze(1),  # coord 翻转维度以匹配 grid_sample 要求
                 mode='nearest', align_corners=False
-            )[:, :, 0, :].transpose(0, 2, 1)  # Jittor 用 transpose 替代 permute
+            )[:, :, 0, :].transpose(0, 2, 1)  
             return ret
 
         # 特征展开（3x3 邻域）
         if self.feat_unfold:
             # 保存 unfold 前的原始形状（4 维：B, C, H, W）
-            B, C, H, W = feat.shape  # 关键：这里的 H 和 W 是原始特征的空间维度
+            B, C, H, W = feat.shape  # 这里的 H 和 W 是原始特征的空间维度
             # 执行 unfold（输出 3 维：B, C*9, H*W）
             feat = jt.nn.unfold(feat, kernel_size=3, padding=1)
             # 用原始 H 和 W 重塑形状（恢复为 4 维：B, C*9, H, W）
@@ -65,7 +64,7 @@ class LIIF(nn.Module):
         rx = 2 / feat.shape[-2] / 2  # 高度方向单位长度
         ry = 2 / feat.shape[-1] / 2  # 宽度方向单位长度
 
-        # 生成特征图自身坐标（无需.cuda()，Jittor自动管理设备）
+        # 生成特征图自身坐标
         feat_coord = make_coord(feat.shape[-2:], flatten=False) \
             .transpose(2, 0, 1) \
             .unsqueeze(0).expand(feat.shape[0], 2, *feat.shape[-2:])
@@ -75,16 +74,16 @@ class LIIF(nn.Module):
         for vx in vx_lst:
             for vy in vy_lst:
                 # 坐标偏移（局部集成）
-                coord_ = coord.copy()  # Jittor 用 copy() 替代 clone()
+                coord_ = coord.copy()  
                 coord_[:, :, 0] += vx * rx + eps_shift
                 coord_[:, :, 1] += vy * ry + eps_shift
-                coord_ = coord_.clamp(-1 + 1e-6, 1 - 1e-6)  # Jittor 无 in-place 操作，用 clamp 替代 clamp_
+                coord_ = coord_.clamp(-1 + 1e-6, 1 - 1e-6) 
 
                 # 采样特征和坐标
                 q_feat = jt.nn.grid_sample(
                     feat, coord_.flip(-1).unsqueeze(1),
                     mode='nearest', align_corners=False
-                )[:, :, 0, :].transpose(0, 2, 1)  # transpose 替代 permute
+                )[:, :, 0, :].transpose(0, 2, 1) 
 
                 q_coord = jt.nn.grid_sample(
                     feat_coord, coord_.flip(-1).unsqueeze(1),
@@ -97,7 +96,7 @@ class LIIF(nn.Module):
                 rel_coord[:, :, 1] *= feat.shape[-1]
 
                 # 拼接特征和坐标
-                inp = jt.concat([q_feat, rel_coord], dim=-1)  # Jittor 用 jt.concat 替代 torch.cat
+                inp = jt.concat([q_feat, rel_coord], dim=-1)  
 
                 # 若启用细胞解码，拼接细胞信息
                 if self.cell_decode:
@@ -112,13 +111,13 @@ class LIIF(nn.Module):
                 preds.append(pred)
 
                 # 计算权重面积
-                area = jt.abs(rel_coord[:, :, 0] * rel_coord[:, :, 1])  # jt.abs 替代 torch.abs
+                area = jt.abs(rel_coord[:, :, 0] * rel_coord[:, :, 1])  
                 areas.append(area + 1e-9)
 
         # 加权融合预测结果
-        tot_area = jt.stack(areas).sum(dim=0)  # jt.stack 替代 torch.stack
+        tot_area = jt.stack(areas).sum(dim=0)  
         if self.local_ensemble:
-            # 交换面积顺序（保持与原逻辑一致）
+            # 交换面积顺序
             t = areas[0]; areas[0] = areas[3]; areas[3] = t
             t = areas[1]; areas[1] = areas[2]; areas[2] = t
 
@@ -127,6 +126,6 @@ class LIIF(nn.Module):
             ret += pred * (area / tot_area).unsqueeze(-1)
         return ret
 
-    def execute(self, inp, coord, cell):  # Jittor 用 execute 替代 forward
+    def execute(self, inp, coord, cell): 
         self.gen_feat(inp)
         return self.query_rgb(coord, cell)

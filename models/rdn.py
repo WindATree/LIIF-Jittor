@@ -22,7 +22,7 @@ class RDB_Conv(nn.Module):
 
     def execute(self, x):
         out = self.conv(x)
-        return jt.concat((x, out), 1)  # 替换 torch.cat 为 jt.concat
+        return jt.concat((x, out), 1)  
 
 class RDB(nn.Module):
     def __init__(self, growRate0, growRate, nConvLayers, kSize=3):
@@ -104,7 +104,7 @@ class RDN(nn.Module):
             x = self.RDBs[i](x)
             RDBs_out.append(x)
 
-        x = self.GFF(jt.concat(RDBs_out, 1))  # 替换 torch.cat 为 jt.concat
+        x = self.GFF(jt.concat(RDBs_out, 1)) 
         x += f__1  # 全局残差连接
 
         if self.args.no_upsampling:

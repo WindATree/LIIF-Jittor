@@ -14,7 +14,7 @@ import utils
 
 
 def batched_predict(model, inp, coord, cell, bsize):
-    with jt.no_grad():  # Jittor 禁用梯度计算
+    with jt.no_grad(): 
         model.gen_feat(inp)
         n = coord.shape[1]
         ql = 0
@@ -24,20 +24,20 @@ def batched_predict(model, inp, coord, cell, bsize):
             pred = model.query_rgb(coord[:, ql: qr, :], cell[:, ql: qr, :])
             preds.append(pred)
             ql = qr
-        pred = jt.concat(preds, dim=1)  # Jittor 拼接张量
+        pred = jt.concat(preds, dim=1)  
     return pred
 
 
 def eval_psnr(loader, model, data_norm=None, eval_type=None, eval_bsize=None,
               verbose=False):
-    model.eval()  # 切换为评估模式
+    model.eval() 
 
     if data_norm is None:
         data_norm = {
             'inp': {'sub': [0], 'div': [1]},
             'gt': {'sub': [0], 'div': [1]}
         }
-    # 数据归一化参数（Jittor 张量，无需手动指定设备）
+    # 数据归一化
     t = data_norm['inp']
     inp_sub = jt.array(t['sub']).view(1, -1, 1, 1)
     inp_div = jt.array(t['div']).view(1, -1, 1, 1)
@@ -45,7 +45,7 @@ def eval_psnr(loader, model, data_norm=None, eval_type=None, eval_bsize=None,
     gt_sub = jt.array(t['sub']).view(1, 1, -1)
     gt_div = jt.array(t['div']).view(1, 1, -1)
 
-    # 选择评估指标函数（复用已转换的 utils.calc_psnr）
+    # 选择评估指标函数
     if eval_type is None:
         metric_fn = utils.calc_psnr
     elif eval_type.startswith('div2k'):
@@ -61,10 +61,9 @@ def eval_psnr(loader, model, data_norm=None, eval_type=None, eval_bsize=None,
 
     pbar = tqdm(loader, leave=False, desc='val')
     for batch in pbar:
-        # Jittor 自动管理设备，无需 .cuda()
         inp = (batch['inp'] - inp_sub) / inp_div
         
-        # 推理（支持批量预测）
+        # 推理
         if eval_bsize is None:
             with jt.no_grad():
                 pred = model(inp, batch['coord'], batch['cell'])
@@ -73,14 +72,13 @@ def eval_psnr(loader, model, data_norm=None, eval_type=None, eval_bsize=None,
         
         # 还原预测值（反归一化）
         pred = pred * gt_div + gt_sub
-        pred = pred.clamp(0, 1)  # Jittor 无 in-place 操作，用 clamp 替代 clamp_
+        pred = pred.clamp(0, 1)  
 
-        # 针对特定评估类型调整形状（如裁剪边界）
         if eval_type is not None:
             ih, iw = batch['inp'].shape[-2:]
             s = math.sqrt(batch['coord'].shape[1] / (ih * iw))
             shape = [batch['inp'].shape[0], round(ih * s), round(iw * s), 3]
-            pred = pred.view(*shape).transpose(0, 3, 1, 2).contiguous()  # transpose 替代 permute
+            pred = pred.view(*shape).transpose(0, 3, 1, 2).contiguous()  
             batch['gt'] = batch['gt'].view(*shape).transpose(0, 3, 1, 2).contiguous()
 
         # 计算指标并累计
@@ -100,7 +98,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', default='0')
     args = parser.parse_args()
 
-    # 设置可见 GPU（Jittor 会自动使用）
+    # 设置可见 GPU
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
     # 加载配置文件
@@ -114,12 +112,12 @@ if __name__ == '__main__':
     loader = DataLoader(
         dataset,
         batch_size=spec['batch_size'],
-        num_workers=8  # 移除 pin_memory（Jittor 无需）
+        num_workers=8  
     )
 
-    # 加载模型（Jittor 格式）
-    model_spec = jt.load(args.model)['model']  # jt.load 替代 torch.load
-    model = models.make(model_spec, load_sd=True)  # 无需 .cuda()
+    # 加载模型
+    model_spec = jt.load(args.model)['model'] 
+    model = models.make(model_spec, load_sd=True) 
 
     # 执行评估
     res = eval_psnr(

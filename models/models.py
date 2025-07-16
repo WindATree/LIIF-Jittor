@@ -19,9 +19,8 @@ def make(model_spec, args=None, load_sd=False):
     # 创建模型实例
     model = models[model_spec['name']](**model_args)
     
-    # 加载预训练权重（适配 Jittor 的 load_state_dict 实现）
+    # 加载预训练权重
     if load_sd:
-        # 确保权重字典中的键与模型参数匹配
         state_dict = model_spec['sd']
         model.load_state_dict(state_dict)
     

@@ -8,7 +8,7 @@ import jittor as jt
 from jittor.dataset import Dataset
 
 from datasets import register
-from utils import to_pixel_samples  # 假设该函数已转换为 Jittor 兼容版本
+from utils import to_pixel_samples  
 
 def resize_fn(img, size):
     """使用 PIL 和 numpy 实现与 torchvision.transforms 相同的 resize 功能"""
@@ -43,7 +43,7 @@ class SRImplicitPaired(Dataset):
     def __getitem__(self, idx):
         img_lr, img_hr = self.dataset[idx]
 
-        s = img_hr.shape[-2] // img_lr.shape[-2]  # assume int scale
+        s = img_hr.shape[-2] // img_lr.shape[-2]  
         if self.inp_size is None:
             h_lr, w_lr = img_lr.shape[-2:]
             img_hr = img_hr[:, :h_lr * s, :w_lr * s]
@@ -120,7 +120,7 @@ class SRImplicitDownsampled(Dataset):
         if self.inp_size is None:
             h_lr = math.floor(img.shape[-2] / s + 1e-9)
             w_lr = math.floor(img.shape[-1] / s + 1e-9)
-            img = img[:, :round(h_lr * s), :round(w_lr * s)]  # assume round int
+            img = img[:, :round(h_lr * s), :round(w_lr * s)]  
             img_down = resize_fn(img, (h_lr, w_lr))
             crop_lr, crop_hr = img_down, img
         else:
