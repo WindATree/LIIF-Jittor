@@ -10,7 +10,6 @@ from jittor.dataset import Dataset
 
 from datasets import register
 
-# Jittor 不直接支持 transforms，需要自己实现
 def to_tensor(pil_img):
     img = np.array(pil_img, dtype=np.float32)
     img = img.transpose(2, 0, 1) / 255.0  # HWC 转 CHW 并归一化

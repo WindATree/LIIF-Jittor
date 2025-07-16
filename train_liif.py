@@ -28,15 +28,14 @@ import yaml
 import jittor as jt
 import jittor.nn as nn
 from tqdm import tqdm
-from jittor.dataset import DataLoader  # Jittor 的 DataLoader
-from jittor.lr_scheduler import MultiStepLR  # Jittor 的学习率调度器
+from jittor.dataset import DataLoader  
+from jittor.lr_scheduler import MultiStepLR 
 
 import datasets
 import models
 import utils
 from test import eval_psnr 
 
-print("Use CUDA:", jt.flags.use_cuda)  # 应输出 True
 jt.flags.use_cuda = 1
 # 验证是否启用成功
 print("Use CUDA after setting:", jt.flags.use_cuda)  # 应输出 1
@@ -53,12 +52,12 @@ def make_data_loader(spec, tag=''):
     for k, v in dataset[0].items():
         log('  {}: shape={}'.format(k, tuple(v.shape)))
 
-    # Jittor DataLoader，参数与 PyTorch 类似但无需 pin_memory
+    # Jittor DataLoader
     loader = DataLoader(
         dataset,
         batch_size=spec['batch_size'],
         shuffle=(tag == 'train'),
-        num_workers=8  # Jittor 支持多线程加载
+        num_workers=8 
     )
     return loader
 
@@ -102,8 +101,8 @@ def prepare_training():
 
 
 def train(train_loader, model, optimizer):
-    model.train()  # Jittor 模型训练模式
-    loss_fn = nn.L1Loss()  # Jittor 的 L1 损失
+    model.train() 
+    loss_fn = nn.L1Loss() 
     train_loss = utils.Averager()
 
     data_norm = config['data_norm']
@@ -182,7 +181,7 @@ def main(config_, save_path):
         else:
             model_ = model
         model_spec = config['model']
-        model_spec['sd'] = model_.state_dict()  # Jittor 模型状态字典
+        model_spec['sd'] = model_.state_dict()  
         optimizer_spec = config['optimizer']
         optimizer_spec['sd'] = optimizer.state_dict()
         sv_file = {
@@ -216,7 +215,7 @@ def main(config_, save_path):
                 max_val_v = val_res
                 jt.save(sv_file, os.path.join(save_path, 'epoch-best.pth'))
 
-        # 计时信息
+        # 计时
         t = timer.t()
         prog = (epoch - epoch_start + 1) / (epoch_max - epoch_start + 1)
         t_epoch = utils.time_text(t - t_epoch_start)
