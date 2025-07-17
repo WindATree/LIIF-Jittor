@@ -9,6 +9,8 @@ import models
 from utils import make_coord  
 from test import batched_predict  
 
+jt.flags.use_cuda = 1
+print("Use CUDA after setting:", jt.flags.use_cuda)  # 应输出 1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

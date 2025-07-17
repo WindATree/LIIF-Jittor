@@ -12,6 +12,8 @@ import datasets
 import models
 import utils
 
+jt.flags.use_cuda = 1
+print("Use CUDA after setting:", jt.flags.use_cuda)  # 应输出 1
 
 def batched_predict(model, inp, coord, cell, bsize):
     with jt.no_grad(): 
@@ -128,3 +130,17 @@ if __name__ == '__main__':
         verbose=True
     )
     print(f'result: {res:.4f}')
+    # ========== 新增：先创建目录，再写入文件 ==========
+    # 1. 定义结果保存目录和文件路径
+    result_dir = 'results'
+    task_name = os.path.basename(args.config).replace('test-', '').replace('.yaml', '')  
+    save_file = os.path.join(result_dir, 'edsr_liif_tasks_result.txt')
+
+    # 2. 检查并创建目录（如果不存在）
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+        print(f'创建目录: {result_dir}')
+
+    # 3. 写入结果到文件
+    with open(save_file, 'a') as f:
+        f.write(f'{task_name}: {res:.4f}\n')

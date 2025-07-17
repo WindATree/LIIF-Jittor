@@ -59,7 +59,7 @@ optimizer:
   name: adam
   args:
     lr: 0.0001
-epoch_max: 1000
+epoch_max: 50
 multi_step_lr:
   milestones:
   - 200
