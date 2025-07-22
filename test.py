@@ -134,7 +134,7 @@ if __name__ == '__main__':
     # 1. 定义结果保存目录和文件路径
     result_dir = 'results'
     task_name = os.path.basename(args.config).replace('test-', '').replace('.yaml', '')  
-    save_file = os.path.join(result_dir, 'edsr_liif_tasks_result.txt')
+    save_file = os.path.join(result_dir, 'rdn_liif_tasks_result.txt')
 
     # 2. 检查并创建目录（如果不存在）
     if not os.path.exists(result_dir):
