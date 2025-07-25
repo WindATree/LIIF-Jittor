@@ -1,0 +1,31 @@
+train dataset: size=16000
+  inp: shape=(3, 48, 48)
+  coord: shape=(256, 2)
+  cell: shape=(256, 2)
+  gt: shape=(256, 3)
+val dataset: size=1600
+  inp: shape=(3, 48, 48)
+  coord: shape=(256, 2)
+  cell: shape=(256, 2)
+  gt: shape=(256, 3)
+model: #params=1.4M
+epoch 1/20, train: loss=0.0512, val: psnr=32.9813, 5.9m 5.9m/2.0h
+epoch 2/20, train: loss=0.0419, val: psnr=34.7813, 5.7m 11.5m/1.9h
+epoch 3/20, train: loss=0.0394, val: psnr=34.5481, 5.6m 17.1m/1.9h
+epoch 4/20, train: loss=0.0387, val: psnr=35.5646, 5.6m 22.7m/1.9h
+epoch 5/20, train: loss=0.0384, val: psnr=35.2104, 5.6m 28.3m/1.9h
+epoch 6/20, train: loss=0.0375, val: psnr=35.4111, 5.5m 33.8m/1.9h
+epoch 7/20, train: loss=0.0370, val: psnr=35.1432, 5.5m 39.3m/1.9h
+epoch 8/20, train: loss=0.0368, val: psnr=34.1352, 5.7m 45.0m/1.9h
+epoch 9/20, train: loss=0.0369, val: psnr=35.4176, 5.5m 50.5m/1.9h
+epoch 10/20, train: loss=0.0366, val: psnr=34.7316, 5.4m 55.9m/1.9h
+epoch 11/20, train: loss=0.0367, val: psnr=35.2027, 5.4m 1.0h/1.9h
+epoch 12/20, train: loss=0.0364, val: psnr=35.9336, 5.4m 1.1h/1.9h
+epoch 13/20, train: loss=0.0368, val: psnr=35.1810, 5.4m 1.2h/1.8h
+epoch 14/20, train: loss=0.0362, val: psnr=35.1047, 5.4m 1.3h/1.8h
+epoch 15/20, train: loss=0.0364, val: psnr=35.3760, 5.4m 1.4h/1.8h
+epoch 16/20, train: loss=0.0361, val: psnr=35.4815, 5.4m 1.5h/1.8h
+epoch 17/20, train: loss=0.0363, val: psnr=35.6839, 5.4m 1.6h/1.8h
+epoch 18/20, train: loss=0.0360, val: psnr=35.7107, 5.4m 1.7h/1.8h
+epoch 19/20, train: loss=0.0358, val: psnr=34.9295, 5.3m 1.7h/1.8h
+epoch 20/20, train: loss=0.0357, val: psnr=35.6812, 5.7m 1.8h/1.8h
