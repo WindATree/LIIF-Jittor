@@ -3,6 +3,8 @@ import jittor as jt
 
 models = {}
 
+# 构造模型,使用装饰器
+# 比如定义一个类是 class edsr, 那么 register("edsr") 对应的字典就是 {"edsr" : <class '__main__.edsr'>}
 def register(name):
     def decorator(cls):
         models[name] = cls

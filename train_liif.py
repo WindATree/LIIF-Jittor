@@ -44,8 +44,9 @@ def make_data_loader(spec, tag=''):
     if spec is None:
         return None
 
-    # 创建数据集
+    # 创建原始数据集
     dataset = datasets.make(spec['dataset'])
+    # 应用数据集包装器
     dataset = datasets.make(spec['wrapper'], args={'dataset': dataset})
 
     log('{} dataset: size={}'.format(tag, len(dataset)))
@@ -116,13 +117,14 @@ def train(train_loader, model, optimizer):
 
     for batch in tqdm(train_loader, leave=False, desc='train'):
         inp = (batch['inp'] - inp_sub) / inp_div
+        # 前向传播
         pred = model(inp, batch['coord'], batch['cell'])
 
         gt = (batch['gt'] - gt_sub) / gt_div
         loss = loss_fn(pred, gt)
 
         train_loss.add(loss.item())
-
+        # 反向传播
         optimizer.zero_grad()  
         optimizer.backward(loss)
         optimizer.step()  
@@ -137,6 +139,7 @@ def main(config_, save_path):
     global config, log, writer
     config = config_
     log, writer = utils.set_save_path(save_path)
+    # 将配置写入 save/config.yaml
     with open(os.path.join(save_path, 'config.yaml'), 'w') as f:
         yaml.dump(config, f, sort_keys=False)
 
@@ -227,11 +230,14 @@ def main(config_, save_path):
 
 
 if __name__ == '__main__':
+    # 创建一个命令行参数解析器
     parser = argparse.ArgumentParser()
+    # 定义命令行参数时必须用 --开头
     parser.add_argument('--config')
     parser.add_argument('--name', default=None)
     parser.add_argument('--tag', default=None)
     parser.add_argument('--gpu', default='0')
+    # 解析命令行传入的参数
     args = parser.parse_args()
 
     # 设置可见 GPU
@@ -239,6 +245,7 @@ if __name__ == '__main__':
 
     # 加载配置文件
     with open(args.config, 'r') as f:
+        # load 会将 yaml 转为 Python 字典
         config = yaml.load(f, Loader=yaml.FullLoader)
         print('config loaded.')
 

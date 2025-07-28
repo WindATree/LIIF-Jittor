@@ -32,11 +32,13 @@ class RDB(nn.Module):
         C = nConvLayers
 
         convs = []
+        # 1. 构建多个RDB_Conv，通道数逐层增加
         for c in range(C):
+            # 通道数：G0 → G0+G → G0+2G → ... → G0+C*G
             convs.append(RDB_Conv(G0 + c*G, G))
         self.convs = nn.Sequential(*convs)
 
-        # 局部特征融合
+        # 2. 特征融合：将G0+C*G通道压缩回G0
         self.LFF = nn.Conv2d(G0 + C*G, G0, 1, padding=0, stride=1)
 
     def execute(self, x):
@@ -62,6 +64,7 @@ class RDN(nn.Module):
 
         # 残差密集块和密集特征融合
         self.RDBs = nn.ModuleList()
+        # 串联多个 RDB 块
         for i in range(self.D):
             self.RDBs.append(
                 RDB(growRate0=G0, growRate=G, nConvLayers=C)

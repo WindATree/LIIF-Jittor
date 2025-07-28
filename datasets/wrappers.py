@@ -27,6 +27,7 @@ def resize_fn(img, size):
     resized_np = resized_np.transpose(2, 0, 1)  # HWC -> CHW
     return jt.array(resized_np)
 
+# lr + hr 缩放固定因子 hr尺寸 / lr尺寸
 @register('sr-implicit-paired')
 class SRImplicitPaired(Dataset):
 
@@ -46,16 +47,20 @@ class SRImplicitPaired(Dataset):
         s = img_hr.shape[-2] // img_lr.shape[-2]  
         if self.inp_size is None:
             h_lr, w_lr = img_lr.shape[-2:]
+            # 裁剪HR图像，确保其高度=h_lr×s，宽度=w_lr×s
             img_hr = img_hr[:, :h_lr * s, :w_lr * s]
             crop_lr, crop_hr = img_lr, img_hr
         else:
             w_lr = self.inp_size
+            # 随机选择LR图像上的裁剪起点
             x0 = random.randint(0, img_lr.shape[-2] - w_lr)
             y0 = random.randint(0, img_lr.shape[-1] - w_lr)
+            # 从LR图像中裁剪出 w_lr × w_lr 的区域
             crop_lr = img_lr[:, x0: x0 + w_lr, y0: y0 + w_lr]
             w_hr = w_lr * s
             x1 = x0 * s
             y1 = y0 * s
+            # 从HR图像中裁剪出 w_hr × w_hr 的区域
             crop_hr = img_hr[:, x1: x1 + w_hr, y1: y1 + w_hr]
 
         if self.augment:
@@ -77,14 +82,17 @@ class SRImplicitPaired(Dataset):
 
         hr_coord, hr_rgb = to_pixel_samples(crop_hr.contiguous())
 
+        # 从坐标点中随机选取 sample_q 个
         if self.sample_q is not None:
             sample_lst = np.random.choice(
                 len(hr_coord), self.sample_q, replace=False)
             hr_coord = hr_coord[sample_lst]
             hr_rgb = hr_rgb[sample_lst]
-
+        #cell 表示每个坐标对应的实际像素大小
         cell = jt.ones_like(hr_coord)
-        cell[:, 0] *= 2 / crop_hr.shape[-2]
+        # 水平方向cell大小
+        cell[:, 0] *= 2 / crop_hr.shape[-2]   
+        # 垂直方向cell大小
         cell[:, 1] *= 2 / crop_hr.shape[-1]
 
         return {
@@ -94,7 +102,7 @@ class SRImplicitPaired(Dataset):
             'gt': hr_rgb
         }
 
-
+# 输入仅 hr 随机缩放
 @register('sr-implicit-downsampled')
 class SRImplicitDownsampled(Dataset):
 
@@ -137,10 +145,13 @@ class SRImplicitDownsampled(Dataset):
             dflip = random.random() < 0.5
 
             def augment(x):
+                # 水平翻转
                 if hflip:
                     x = x.flip(-2)
+                # 垂直翻转
                 if vflip:
                     x = x.flip(-1)
+                # 旋转 90°
                 if dflip:
                     x = x.transpose(-2, -1)
                 return x
@@ -161,13 +172,13 @@ class SRImplicitDownsampled(Dataset):
         cell[:, 1] *= 2 / crop_hr.shape[-1]
 
         return {
-            'inp': crop_lr,
-            'coord': hr_coord,
-            'cell': cell,
-            'gt': hr_rgb
+            'inp': crop_lr,    # 输入的低分辨率图像
+            'coord': hr_coord, # 高分辨率图像的坐标网格
+            'cell': cell,      # 坐标单元大小
+            'gt': hr_rgb       # 高分辨率图像的像素值
         }
 
-
+# 输入是 lr + hr 缩放因子虽坐标线性变化 从 min 到 max
 @register('sr-implicit-uniform-varied')
 class SRImplicitUniformVaried(Dataset):
 

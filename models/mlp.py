@@ -3,7 +3,7 @@ import jittor.nn as nn
 
 from models import register
 
-
+# 解码器是 5 层的 MLP 网络
 @register('mlp')
 class MLP(nn.Module):
 

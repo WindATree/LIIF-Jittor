@@ -17,11 +17,15 @@ print("Use CUDA after setting:", jt.flags.use_cuda)  # 应输出 1
 
 def batched_predict(model, inp, coord, cell, bsize):
     with jt.no_grad(): 
+        # 模型对输入图像提取特征
         model.gen_feat(inp)
+        # 获取坐标点总数 N
         n = coord.shape[1]
+        # 批次起始索引
         ql = 0
         preds = []
         while ql < n:
+            # 批次结束索引
             qr = min(ql + bsize, n)
             pred = model.query_rgb(coord[:, ql: qr, :], cell[:, ql: qr, :])
             preds.append(pred)
@@ -86,7 +90,7 @@ def eval_psnr(loader, model, data_norm=None, eval_type=None, eval_bsize=None,
         # 计算指标并累计
         res = metric_fn(pred, batch['gt'])
         val_res.add(res.item(), inp.shape[0])
-
+        # 实时显示进度
         if verbose:
             pbar.set_description(f'val {val_res.item():.4f}')
 

@@ -18,7 +18,9 @@ class LIIF(nn.Module):
         self.encoder = models.make(encoder_spec)  # 编码器
         
         if imnet_spec is not None:
+            # 计算MLP解码器的输入维度
             imnet_in_dim = self.encoder.out_dim
+            # 单点特征扩展为 3x3 邻域特征
             if self.feat_unfold:
                 imnet_in_dim *= 9  # 3x3 邻域特征展开
             imnet_in_dim += 2  # 附加坐标信息
@@ -54,15 +56,16 @@ class LIIF(nn.Module):
             
         # 局部集成参数
         if self.local_ensemble:
+            # 对坐标进行4个方向的微小偏移
             vx_lst = [-1, 1]
             vy_lst = [-1, 1]
             eps_shift = 1e-6
         else:
             vx_lst, vy_lst, eps_shift = [0], [0], 0
 
-        # 计算特征图坐标范围
-        rx = 2 / feat.shape[-2] / 2  # 高度方向单位长度
-        ry = 2 / feat.shape[-1] / 2  # 宽度方向单位长度
+        # 将特征图的每个位置映射到 [-1,1] 的坐标
+        rx = 2 / feat.shape[-2] / 2  # 特征图每个像素高度方向单位长度
+        ry = 2 / feat.shape[-1] / 2  # 特征图每个像素宽度方向单位长度
 
         # 生成特征图自身坐标
         feat_coord = make_coord(feat.shape[-2:], flatten=False) \
@@ -73,13 +76,16 @@ class LIIF(nn.Module):
         areas = []
         for vx in vx_lst:
             for vy in vy_lst:
-                # 坐标偏移（局部集成）
+                # 坐标偏移局部集成
                 coord_ = coord.copy()  
+                # 对 x 方向和 y 方向添加偏移
                 coord_[:, :, 0] += vx * rx + eps_shift
                 coord_[:, :, 1] += vy * ry + eps_shift
+                # 限制坐标在[-1+1e-6, 1-1e-6] 避免超出特征图范围
                 coord_ = coord_.clamp(-1 + 1e-6, 1 - 1e-6) 
 
                 # 采样特征和坐标
+                # [B, N, CxC×9] 每个查询点对应 CxCx9 维的邻域特征
                 q_feat = jt.nn.grid_sample(
                     feat, coord_.flip(-1).unsqueeze(1),
                     mode='nearest', align_corners=False
@@ -98,11 +104,11 @@ class LIIF(nn.Module):
                 # 拼接特征和坐标
                 inp = jt.concat([q_feat, rel_coord], dim=-1)  
 
-                # 若启用细胞解码，拼接细胞信息
+                # 若启用细胞解码, 拼接细胞信息
                 if self.cell_decode:
                     rel_cell = cell.copy()
-                    rel_cell[:, :, 0] *= feat.shape[-2]
-                    rel_cell[:, :, 1] *= feat.shape[-1]
+                    rel_cell[:, :, 0] *= feat.shape[-2]  # x 方向乘以特征图高度
+                    rel_cell[:, :, 1] *= feat.shape[-1]  # y 方向乘以特征图高度
                     inp = jt.concat([inp, rel_cell], dim=-1)
 
                 # MLP 解码
